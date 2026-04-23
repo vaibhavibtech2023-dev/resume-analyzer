@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recruiter Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+
+    <h2>👩‍💼 Recruiter Dashboard</h2>
+
+    <div class="nav">
+        <a href="/">Home</a>
+        <a href="/candidate">Candidate Mode</a>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+        <textarea name="job_description" placeholder="Paste Job Description"></textarea>
+
+        <input type="file" name="resumes" multiple>
+
+        <button type="submit">Analyze Resumes</button>
+    </form>
+
+    {% if results %}
+        <h3>Results</h3>
+
+        {% for r in results %}
+        <div class="card">
+            <h4>{{ loop.index }}. {{ r.name }}</h4>
+
+            <p><b>Score:</b> {{ r.score }}%</p>
+
+            <p><b>Recruiter Insight:</b> {{ r.feedback }}</p>
+
+            <p><b>Strengths:</b></p>
+            {% for m in r.matched %}
+                <span class="tag">{{ m }}</span>
+            {% endfor %}
+
+            <p><b>Missing Skills:</b></p>
+            {% for m in r.missing %}
+                <span class="tag missing">{{ m }}</span>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+</div>
+
+</body>
+</html>
