@@ -1,44 +1,38 @@
-AI Resume Analyzer
+📄 AI Resume Analyzer
 
 An AI-powered Resume Screening and Ranking System built using Natural Language Processing (NLP) and Machine Learning techniques. This application helps recruiters efficiently shortlist candidates and allows job seekers to evaluate and improve their resumes based on job descriptions.
 
-Overview
+🔍 Overview
 
-The system analyzes resumes against a given job description and computes a match score using a combination of TF-IDF and BERT-based semantic similarity. It also identifies matched and missing skills and generates recruiter-style feedback to provide meaningful insights.
+The system analyzes resumes against a given job description and computes a match score using a combination of TF-IDF and BERT-based semantic similarity via Hugging Face Inference API.
 
-Features
+It also identifies matched and missing skills and generates recruiter-style feedback to provide meaningful insights.
 
-- Resume ranking based on job description
-- Semantic similarity using Sentence Transformers (BERT)
-- Keyword matching using TF-IDF
-- Identification of matched and missing skills
-- Human-readable recruiter-style feedback
-- Candidate ATS score evaluation
-- Support for multiple file formats (PDF, DOCX, TXT)
-- Separate modes for recruiter and candidate usage
-- Web interface built with Flask
-
-Tech Stack
-
+✨ Features
+-Resume ranking based on job description
+-Semantic similarity using Hugging Face BERT API
+-Keyword matching using TF-IDF
+-Identification of matched and missing skills
+-Human-readable recruiter-style feedback
+-Candidate ATS score evaluation
+-Support for multiple file formats (PDF, DOCX, TXT)
+-Separate modes for recruiter and candidate usage
+-Lightweight and deployment-friendly architecture
+-Web interface built with Flask
+🛠️ Tech Stack
 Backend:
-- Python
-- Flask
-
+-Python
+-Flask
 Machine Learning and NLP:
-- Scikit-learn (TF-IDF, similarity)
-- Sentence Transformers (BERT)
-- spaCy (text preprocessing)
-
+-Scikit-learn (TF-IDF, similarity)
+-Hugging Face Inference API (BERT-based semantic similarity)
 File Processing:
-- PyPDF2
-- python-docx
-
+-PyPDF2
+-python-docx
 Frontend:
-- HTML
-- CSS
-
-Project Structure
-
+-HTML
+-CSS
+📁 Project Structure
 resume-analyzer/
 │── main.py
 │── utils.py
@@ -57,50 +51,55 @@ resume-analyzer/
 │
 ├── uploads/
 
-Installation and Setup
 
+⚙️ Installation and Setup
 1. Clone the repository:
-   git clone https://github.com/vaibhavibtech2023-dev/resume-analyzer.git
-   cd resume-analyzer
-
+git clone https://github.com/vaibhavibtech2023-dev/resume-analyzer.git
+cd resume-analyzer
 2. Create a virtual environment:
-   python -m venv venv
-   venv\Scripts\activate      (Windows)
-   source venv/bin/activate   (Mac/Linux)
-
+python -m venv venv
+venv\Scripts\activate      (Windows)
+source venv/bin/activate   (Mac/Linux)
 3. Install dependencies:
-   pip install -r requirements.txt
+pip install -r requirements.txt
+🔑 4. Add Hugging Face API Key
 
-4. Install spaCy model:
-   python -m spacy download en_core_web_sm
+Create an environment variable:
+
+HF_API_KEY=your_huggingface_token
+
+👉 This is required for BERT semantic similarity.
 
 5. Run the application:
-   python main.py
-
+python main.py
 6. Open in browser:
-   http://127.0.0.1:5000
+http://127.0.0.1:5000
+🚀 Usage
+👨‍💼 Recruiter Mode:
+Upload multiple resumes
+Provide a job description
+Get ranked candidates with scores, matched skills, and feedback
+👩‍💻 Candidate Mode:
+Upload a single resume
+Provide a job description
+Get ATS-style evaluation with strengths and improvement areas
+🌐 Deployment
 
-Usage
+The application can be deployed on:
 
-Recruiter Mode:
-Upload multiple resumes and provide a job description to receive ranked candidates along with insights and scores.
+Render
+Railway
+PythonAnywhere
 
-Candidate Mode:
-Upload a single resume and job description to receive an ATS-style evaluation, including strengths and areas for improvement.
+👉 Uses Gunicorn + Hugging Face API, making it lightweight and suitable for cloud deployment.
 
-Deployment
-
-The application can be deployed using platforms such as Render, Railway, or PythonAnywhere.
-
-Future Enhancements
-
-- Resume analysis report download (PDF)
-- User authentication system
-- Dashboard analytics and visualizations
-- Integration with databases
-- Advanced NLP models for better accuracy
-
-Author
+🔮 Future Enhancements
+Resume analysis report download (PDF)
+User authentication system
+Dashboard analytics and visualizations
+Integration with databases
+Advanced NLP models for improved accuracy
+👩‍💻 Author
 
 Vaibhavi Jain
 B.Tech IT Student
