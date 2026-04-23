@@ -3,23 +3,32 @@ import os
 from utils import get_resume_text, clean_and_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTransformer
 
 app = Flask(__name__)
 
+# ---------------- UPLOAD FOLDER ----------------
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+
+# ---------------- BERT (LAZY LOADING) ----------------
 bert_model = None
 
 def get_bert():
     global bert_model
     if bert_model is None:
         from sentence_transformers import SentenceTransformer
-        bert_model = SentenceTransformer('all-MiniLM-L6-v2')
+        # lighter + faster model for Render
+        bert_model = SentenceTransformer('all-MiniLM-L3-v2')
     return bert_model
 
-# Upload folder
-UPLOAD_FOLDER = 'uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# ---------------- WARMUP AFTER START ----------------
+@app.before_request
+def warmup():
+    # runs once per request cycle safely
+    pass
 
 
 # ---------------- SECTION EXTRACTION ----------------
@@ -44,7 +53,7 @@ def extract_sections(text):
     return sections
 
 
-# ---------------- HUMAN FEEDBACK ----------------
+# ---------------- FEEDBACK ----------------
 def generate_human_feedback(score, matched, missing):
 
     if score >= 75:
@@ -57,29 +66,38 @@ def generate_human_feedback(score, matched, missing):
     feedback = f"This candidate appears to be {level} for the role. "
 
     if matched:
-        feedback += "They show relevant experience in " + ", ".join(list(matched)[:5]) + ". "
+        feedback += "Relevant skills: " + ", ".join(list(matched)[:5]) + ". "
 
     if missing:
-        feedback += "However, they are missing key skills such as " + ", ".join(list(missing)[:5]) + ". "
+        feedback += "Missing skills: " + ", ".join(list(missing)[:5]) + ". "
 
-    feedback += "Overall, this profile has potential but may require improvement in certain areas."
+    feedback += "Overall, improvement in missing areas can strengthen the profile."
 
     return feedback
 
 
-# ---------------- ANALYSIS FUNCTION ----------------
+# ---------------- ANALYSIS ----------------
 def analyze_resume(text, job_desc):
+
+    if not text or not job_desc:
+        return 0, set(), set(), "Invalid input", {}
 
     clean_r = clean_and_tokenize(text)
     clean_j = clean_and_tokenize(job_desc)
 
-    # TF-IDF similarity
-    tfidf_vec = TfidfVectorizer()
-    matrix = tfidf_vec.fit_transform([clean_j, clean_r])
-    tfidf_score = cosine_similarity(matrix[0:1], matrix[1:])[0][0]
+    if not clean_r or not clean_j:
+        return 0, set(), set(), "Empty processed text", {}
 
-    # BERT similarity
-    # BERT (Lazy Loading)
+    # ---------------- TF-IDF ----------------
+    tfidf_vec = TfidfVectorizer()
+
+    try:
+        matrix = tfidf_vec.fit_transform([clean_j, clean_r])
+        tfidf_score = cosine_similarity(matrix[0:1], matrix[1:])[0][0]
+    except:
+        tfidf_score = 0
+
+    # ---------------- BERT ----------------
     try:
         model = get_bert()
         emb_j = model.encode([clean_j])
@@ -89,7 +107,7 @@ def analyze_resume(text, job_desc):
         print("BERT failed:", e)
         bert_score = 0
 
-    # Skill matching
+    # ---------------- SKILL MATCH ----------------
     job_words = set(clean_j.split())
     resume_words = set(clean_r.split())
 
@@ -98,23 +116,25 @@ def analyze_resume(text, job_desc):
 
     skill_score = len(matched) / len(job_words) if job_words else 0
 
-    # Final score
-    final_score = round((0.4 * tfidf_score + 0.4 * bert_score + 0.2 * skill_score) * 100, 2)
+    # ---------------- FINAL SCORE ----------------
+    final_score = round(
+        (0.4 * tfidf_score + 0.4 * bert_score + 0.2 * skill_score) * 100,
+        2
+    )
 
     sections = extract_sections(text)
-
     feedback = generate_human_feedback(final_score, matched, missing)
 
     return final_score, matched, missing, feedback, sections
 
 
-# ---------------- HOME PAGE ----------------
+# ---------------- HOME ----------------
 @app.route('/')
 def home():
     return render_template('index.html')
 
 
-# ---------------- RECRUITER MODE ----------------
+# ---------------- RECRUITER ----------------
 @app.route('/recruiter', methods=['GET', 'POST'])
 def recruiter():
 
@@ -136,13 +156,7 @@ def recruiter():
 
                 text = get_resume_text(path)
 
-                # 🔥 safety checks
-                if not text:
-                    print("Empty file:", filename)
-                    continue
-
-                if len(text.strip()) < 30:
-                    print("Too short:", filename)
+                if not text or len(text.strip()) < 30:
                     continue
 
                 score, matched, missing, feedback, sections = analyze_resume(text, job_desc)
@@ -156,7 +170,7 @@ def recruiter():
                 })
 
             except Exception as e:
-                print("Error processing file:", filename, e)
+                print("Error:", filename, e)
 
         results = sorted(results, key=lambda x: x['score'], reverse=True)
 
@@ -165,7 +179,7 @@ def recruiter():
     return render_template('recruiter.html')
 
 
-# ---------------- CANDIDATE MODE ----------------
+# ---------------- CANDIDATE ----------------
 @app.route('/candidate', methods=['GET', 'POST'])
 def candidate():
 
@@ -183,9 +197,8 @@ def candidate():
 
         text = get_resume_text(path)
 
-        # 🔥 safety checks
         if not text or len(text.strip()) < 30:
-            return "Resume content too small or unreadable"
+            return "Resume too small or unreadable"
 
         score, matched, missing, feedback, sections = analyze_resume(text, job_desc)
 
@@ -202,9 +215,11 @@ def candidate():
     return render_template('candidate.html')
 
 
-# ---------------- RUN APP ----------------
+# ---------------- RUN ----------------
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
+
     print("Starting app on port:", port)
+
     app.run(host="0.0.0.0", port=port)
