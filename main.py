@@ -13,7 +13,9 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # 🔐 Add your Hugging Face API key
-HF_API_KEY = "YOUR_HUGGINGFACE_API_KEY"
+import os
+
+HF_API_KEY = os.environ.get("HF_API_KEY")
 
 API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
 HEADERS = {"Authorization": f"Bearer {HF_API_KEY}"}
