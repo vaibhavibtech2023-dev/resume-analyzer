@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 import os
+import requests
 from utils import get_resume_text, clean_and_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -11,22 +12,35 @@ UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-# Toggle BERT (set False if deployment issues)
-USE_BERT = True
+# 🔐 Add your Hugging Face API key
+HF_API_KEY = "YOUR_HUGGINGFACE_API_KEY"
 
-# ---------------- BERT (LAZY LOAD) ----------------
-bert_model = None
+API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
+HEADERS = {"Authorization": f"Bearer {HF_API_KEY}"}
 
-def get_bert():
-    global bert_model
-    if bert_model is None:
-        try:
-            from sentence_transformers import SentenceTransformer
-            bert_model = SentenceTransformer("all-MiniLM-L3-v2")
-        except Exception as e:
-            print("BERT load failed:", e)
-            return None
-    return bert_model
+
+# ---------------- BERT VIA API ----------------
+def get_bert_score(text1, text2):
+    try:
+        payload = {
+            "inputs": {
+                "source_sentence": text1,
+                "sentences": [text2]
+            }
+        }
+
+        response = requests.post(API_URL, headers=HEADERS, json=payload)
+
+        if response.status_code != 200:
+            print("BERT API error:", response.text)
+            return 0
+
+        result = response.json()
+        return result[0]
+
+    except Exception as e:
+        print("BERT API failed:", e)
+        return 0
 
 
 # ---------------- SECTION EXTRACTION ----------------
@@ -93,17 +107,8 @@ def analyze_resume(text, job_desc):
     except Exception as e:
         print("TF-IDF error:", e)
 
-    # -------- BERT --------
-    bert_score = 0
-    if USE_BERT:
-        try:
-            model = get_bert()
-            if model:
-                emb_j = model.encode([clean_j])
-                emb_r = model.encode([clean_r])
-                bert_score = cosine_similarity(emb_j, emb_r)[0][0]
-        except Exception as e:
-            print("BERT error:", e)
+    # -------- BERT (API) --------
+    bert_score = get_bert_score(clean_j, clean_r)
 
     # -------- SKILL MATCH --------
     job_words = set(clean_j.split())
