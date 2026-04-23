@@ -99,7 +99,7 @@ def analyze_resume(text, job_desc):
     skill_score = len(matched) / len(job_words) if job_words else 0
 
     # Final score
-    final_score = round((0.3 * tfidf_score + 0.5 * bert_score + 0.2 * skill_score) * 100, 2)
+    final_score = round((0.4 * tfidf_score + 0.4 * bert_score + 0.2 * skill_score) * 100, 2)
 
     sections = extract_sections(text)
 
