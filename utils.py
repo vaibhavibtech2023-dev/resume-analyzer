@@ -1,17 +1,18 @@
 import PyPDF2
 import docx
 import re
-import spacy
+import nltk
+from nltk.corpus import stopwords
 
-# Load NLP model safely
+# Download once (safe fallback)
 try:
-    nlp = spacy.load("en_core_web_sm")
+    stop_words = set(stopwords.words('english'))
 except:
-    import os
-    os.system("python -m spacy download en_core_web_sm")
-    nlp = spacy.load("en_core_web_sm")
+    nltk.download('stopwords')
+    stop_words = set(stopwords.words('english'))
 
 
+# ---------------- TEXT EXTRACTION ----------------
 def get_resume_text(filepath):
     """Extract text from PDF, DOCX, TXT safely"""
     text = ""
@@ -41,8 +42,9 @@ def get_resume_text(filepath):
     return text
 
 
+# ---------------- CLEANING ----------------
 def clean_and_tokenize(text):
-    """Clean + tokenize text safely"""
+    """Lightweight text cleaning without spaCy"""
 
     if not text:
         return ""
@@ -54,9 +56,13 @@ def clean_and_tokenize(text):
     # Remove special characters
     text = re.sub(r'[^a-zA-Z\s]', ' ', text)
 
-    # Lowercase + NLP
-    doc = nlp(text.lower())
+    # Lowercase
+    text = text.lower()
 
-    tokens = [token.text for token in doc if not token.is_stop and not token.is_space]
+    # Tokenize (simple split)
+    words = text.split()
 
-    return " ".join(tokens)
+    # Remove stopwords
+    words = [w for w in words if w not in stop_words]
+
+    return " ".join(words)
