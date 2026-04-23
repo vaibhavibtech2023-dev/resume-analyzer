@@ -7,8 +7,14 @@ from sentence_transformers import SentenceTransformer
 
 app = Flask(__name__)
 
-# Load BERT model once
-bert_model = SentenceTransformer('all-MiniLM-L6-v2')
+bert_model = None
+
+def get_bert():
+    global bert_model
+    if bert_model is None:
+        from sentence_transformers import SentenceTransformer
+        bert_model = SentenceTransformer('all-MiniLM-L6-v2')
+    return bert_model
 
 # Upload folder
 UPLOAD_FOLDER = 'uploads'
@@ -73,9 +79,15 @@ def analyze_resume(text, job_desc):
     tfidf_score = cosine_similarity(matrix[0:1], matrix[1:])[0][0]
 
     # BERT similarity
-    emb_j = bert_model.encode([clean_j])
-    emb_r = bert_model.encode([clean_r])
-    bert_score = cosine_similarity(emb_j, emb_r)[0][0]
+    # BERT (Lazy Loading)
+    try:
+        model = get_bert()
+        emb_j = model.encode([clean_j])
+        emb_r = model.encode([clean_r])
+        bert_score = cosine_similarity(emb_j, emb_r)[0][0]
+    except Exception as e:
+        print("BERT failed:", e)
+        bert_score = 0
 
     # Skill matching
     job_words = set(clean_j.split())
