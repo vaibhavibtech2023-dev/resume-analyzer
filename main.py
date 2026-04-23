@@ -121,6 +121,42 @@ def analyze_resume(text, job_desc):
 def home():
     return render_template("index.html")
 
+@app.route("/recruiter", methods=["GET", "POST"])
+def recruiter():
+    if request.method == "POST":
+        job_desc = request.form.get("job_description")
+        resume_files = request.files.getlist("resumes")
+
+        if not job_desc or not resume_files or not resume_files[0].filename:
+            return "Upload resumes and job description"
+
+        results = []
+
+        for file in resume_files:
+            try:
+                path = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+                file.save(path)
+
+                text = get_resume_text(path)
+
+                score, matched, missing, feedback, _ = analyze_resume(text, job_desc)
+
+                results.append({
+                    "name": file.filename,
+                    "score": score,
+                    "matched": list(matched)[:10],
+                    "missing": list(missing)[:10],
+                    "feedback": feedback
+                })
+
+            except Exception as e:
+                print("Error:", e)
+
+        results = sorted(results, key=lambda x: x["score"], reverse=True)
+        return render_template("result.html", results=results)
+
+    return render_template("recruiter.html")
+
 
 @app.route("/candidate", methods=["GET", "POST"])
 def candidate():
